@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="security server" default="jar">
+
+	<property name="build_dir" value="build" />
+	<property name="src_dir" value="src"/>
+	<property name="lib_dir" value="lib"/>
+	
+	<path id="classpathes">
+		<fileset dir="${lib_dir}" includes="**/*.jar"></fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${build_dir}"/>
+	</target>
+
+   	<target name="extract.jar" depends="clean">
+        	<unjar dest="${build_dir}">
+            		<fileset dir="${lib_dir}" includes="**/*.jar"></fileset>
+        	</unjar>
+    	</target>
+
+	<target name="build" depends="clean, extract.jar">
+		<mkdir dir="${build_dir}"/>
+	
+		<javac srcdir="${src_dir}" destdir="${build_dir}" classpathref="classpathes"/>
+	</target>
+
+	<target name="jar" depends="build">
+		<jar destfile="${build_dir}/run.jar" basedir="${build_dir}">
+			<manifest>
+      				<attribute name="Main-Class" value="Main"/>
+    			</manifest>
+		</jar>
+	</target>
+
+</project>
