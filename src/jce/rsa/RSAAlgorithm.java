@@ -15,7 +15,7 @@ public class RSAAlgorithm {
     {
         try {
             // Create the cipher
-            Cipher rsaCipher = Cipher.getInstance("RSA");
+            Cipher rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA1ANDMGF1PADDING");
 
             // Initialize the cipher for encryption
             rsaCipher.init(Cipher.ENCRYPT_MODE, key);
@@ -43,7 +43,7 @@ public class RSAAlgorithm {
             byte[] encryptedByte = Base64.decode(encryptedText, Base64.NO_WRAP);
 
             // Create the cipher
-            Cipher rsaCipher = Cipher.getInstance("RSA");
+            Cipher rsaCipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA1ANDMGF1PADDING");
 
             // Initialize the cipher for encryption
             rsaCipher.init(Cipher.DECRYPT_MODE, key);

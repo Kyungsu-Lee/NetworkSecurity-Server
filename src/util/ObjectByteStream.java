@@ -24,7 +24,7 @@ public class ObjectByteStream
         } 
         catch (IOException ex) 
         { 
-            
+ 		ex.printStackTrace();           
         } 
         return bytes; 
     } 
@@ -42,11 +42,11 @@ public class ObjectByteStream
         } 
         catch (IOException ex) 
         { 
-             
+ 		ex.printStackTrace();           
         } 
         catch (ClassNotFoundException ex) 
         { 
-            
+ 		ex.printStackTrace();           
         } 
         return obj; 
     }

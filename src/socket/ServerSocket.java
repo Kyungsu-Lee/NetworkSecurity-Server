@@ -12,10 +12,15 @@ import java.util.Scanner;
 
 import socket.listener.*;
 import json.*;
+
 import jce.rsa.*;
+import jce.des.*;
+import jce.aes.*;
+
 import util.*;
 
 import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 
 public class ServerSocket extends Thread
 {
@@ -23,7 +28,7 @@ public class ServerSocket extends Thread
 
 	private java.net.ServerSocket server;
 	private HashMap<String, ClientRunnerThread> clients;
-	private HashMap<String, String> publicKeys;
+	private HashMap<String, RSASecretKey> publicKeys;
 
 	public ServerSocket(int port)	throws Exception
 	{
@@ -110,24 +115,6 @@ public class ServerSocket extends Thread
 				JsonParser json = JsonParser.parse(message);
 				System.out.println("received from " + clientThread.getUserID() + " : " + json.get("message"));
 				
-				try{
-				//test for RSA in server
-				if(json.get("encrypt").equals("RSA"))
-				{
-					System.out.println("key : " + publicKeys.get(json.get("FROM")));
-					RSASecretKey key = RSASecretKey.setPrivateKey(publicKeys.get(json.get("FROM")));
-					System.out.println(key.toPrivateKey2String());
-					System.out.println(key.toPrivateKey2String().length());
-					System.out.println(json.get("message"));
-					String det = RSAAlgorithm.decryptBase64AsString(json.get("message"), key.getPrivateKey());
-					System.out.println(det);
-				}
-				}catch(Exception e)
-				{
-					e.printStackTrace();
-				}
-				///////
-
 				for(String uuid : clients.keySet())
 					if(uuid.equals(json.get("ID")))
 					{
@@ -143,10 +130,79 @@ public class ServerSocket extends Thread
 			public void receiveData(String message)
 			{
 				JsonParser json = JsonParser.parse(message);
+			
+				publicKeys.put(json.get("ID"), RSASecretKey.setPublicKey(json.get("key mod"), json.get("key exp")));
+			}
+		});
 
-				String key = json.get("key");
-				publicKeys.put(json.get("ID"), key);
-				System.out.println("saved " + json.get("ID") + " : " + json.get("key"));
+		clientThread.setDataReceiveListener("KDC1", new DataReceiveListener(){
+
+			private String encrypt(String message, RSAPublicKey key)
+			{
+				return RSAAlgorithm.encrpytedAsBase64(message, key);
+			}
+	
+			@Override
+			public void receiveData(String message)
+			{
+				JsonParser json = JsonParser.parse(message);
+
+				String userFrom = json.get("From");	//user 1
+				String userTo   = json.get("To");	//user 2
+				String nonce    = json.get("Nonce");
+
+				String sessionKeyForDES = new DESSecretKey().toString();
+				String sessionKeyForAES = new AESSecretKey().toString();
+	
+				RSASecretKey user1Key = publicKeys.get(userFrom);
+				RSASecretKey user2Key = publicKeys.get(userTo);
+
+				String message1 = new JsonParser()
+						.add("session key", sessionKeyForDES)
+						.add("From", userFrom)
+						.add("To", userTo)
+						.add("Nonce", nonce)
+						.toString();
+
+				String message2 = new JsonParser()
+						.add("session key", "sssss")
+						.add("From", userFrom)
+						.toString();
+
+				System.out.println(message1);
+				System.out.println(message2);
+
+				clientThread.sendData(
+					new JsonParser()
+						.add("command", "KDC2")
+						.add("user1 session key des", 	encrypt(sessionKeyForDES, 	user1Key.getPublicKey()))
+						.add("user1 session key aes",	encrypt(sessionKeyForAES,	user1Key.getPublicKey()))
+						.add("user1 From", 		encrypt(userFrom, 		user1Key.getPublicKey()))
+						.add("user1 To", 		encrypt(userTo, 		user1Key.getPublicKey()))
+						.add("user1 Nonce", 		encrypt(nonce, 			user1Key.getPublicKey()))
+						.add("user2 session key des", 	encrypt(sessionKeyForDES, 	user2Key.getPublicKey()))
+						.add("user2 session key aes",	encrypt(sessionKeyForAES,	user2Key.getPublicKey()))
+						.add("user2 From", 		encrypt(userFrom, 		user2Key.getPublicKey()))
+						.toString()
+				);
+			}
+		});
+
+		clientThread.setDataReceiveListener("KDC3", new DataReceiveListener(){
+			@Override
+			public void receiveData(String message)
+			{
+				JsonParser json = JsonParser.parse(message);
+				
+				String toUser = json.get("To");
+
+				for(String uuid : clients.keySet())
+					if(uuid.equals(toUser))
+					{
+						JsonParser tmp = JsonParser.parse(message);
+						clients.get(uuid).sendData(tmp.toString());
+						System.out.println(String.format("from %s to %s : %s", clientThread.getUserID(), uuid, tmp.toString())); 
+					}
 			}
 		});
 
@@ -155,25 +211,27 @@ public class ServerSocket extends Thread
 			@Override
 			public void receiveData(String message)
 			{
+				try{
+				System.out.println(message);
 				JsonParser parser = JsonParser.parse(message);
 
-				System.out.println("hello");
-				System.out.println(parser.get("key"));
-				
-				RSASecretKey publicKey = (RSASecretKey)ObjectByteStream.toObject(Base64.decode(parser.get("key"), Base64.NO_WRAP));
-				System.out.println("hello");
-				System.out.println("key : " + publicKey.toPublicKey2String());
+				//RSASecretKey publicKey = RSASecretKey.setPublicKey(parser.get("key mod"), parser.get("key exp"));
+				RSASecretKey publicKey = publicKeys.get(parser.get("ID"));
 
-				String en = RSAAlgorithm.encrpytedAsBase64("hello", publicKey.getPublicKey());
-
-				System.out.println("en : " + en);
-
+				String en = RSAAlgorithm.encrpytedAsBase64("orld", publicKey.getPublicKey());
 
 				clientThread.sendData(new JsonParser()
 					.add("command", "Test")
-					.add("message", en)
+					.add("message", "hello")
+					.add("key mod", parser.get("key mod"))
+					.add("key exp", parser.get("key exp"))
+					.add("en", en)
 					.toString()
 				);
+				}catch(Exception e)
+				{
+					e.printStackTrace();
+				}
 			}
 		});
 		///////////

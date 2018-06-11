@@ -94,8 +94,7 @@ public class ClientRunnerThread extends Thread
 
 				try
 				{
-					//byte[] data = message.getBytes();
-					byte[] data = Base64.decode(message, Base64.DEFAULT);
+					byte[] data = message.getBytes();
 					output.write(data, 0, data.length);	
 					sendResult = true;
 				}
@@ -138,13 +137,10 @@ public class ClientRunnerThread extends Thread
 			{
 				byte[] data = new byte[BUFFER_SIZE];
 				int length = input.read(data, 0, BUFFER_SIZE);
-				System.out.println("len : " + length);
 				data = trimByte(data, length);
 
-				//String message = new String(data);
-				String message = Base64.encodeToString(data, Base64.DEFAULT);
+				String message = new String(data);
 
-				System.out.println("rec + " + message);
 
 				if(dataReceiveListener != null)
 					dataReceiveListener.receiveData(message);
