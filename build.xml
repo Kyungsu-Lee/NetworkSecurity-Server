@@ -5,6 +5,7 @@
 	<property name="build_dir" value="build" />
 	<property name="src_dir" value="src"/>
 	<property name="lib_dir" value="lib"/>
+	<property name="doc_dir" value="doc"/>
 	
 	<path id="classpathes">
 		<fileset dir="${lib_dir}" includes="**/*.jar"></fileset>
@@ -12,7 +13,18 @@
 
 	<target name="clean">
 		<delete dir="${build_dir}"/>
+		<delete dir="${doc_dir}"/>
 	</target>
+
+	<target name="doc" depends="clean" description="generate documentation">
+    		<javadoc sourcepath="${src_dir}" destdir="${doc_dir}">
+			<classpath>
+        			<fileset dir="${lib_dir}">
+            				<include name="**/*.jar"/>
+        			</fileset>
+    			</classpath>
+		</javadoc>
+  	</target>
 
    	<target name="extract.jar" depends="clean">
         	<unjar dest="${build_dir}">

@@ -10,6 +10,7 @@ import java.net.Socket;
 
 import socket.listener.*;
 import json.*;
+import util.*;
 
 public class ClientRunnerThread extends Thread
 {
@@ -19,12 +20,14 @@ public class ClientRunnerThread extends Thread
 	private OutputStream output;
 	private InputStream input;
 
-	private final int BUFFER_SIZE = 100;
+	private final int BUFFER_SIZE = ServerSocket.BUFFER_SIZE;
 	
 	private DataSendListener dataSendListener;
 	private DataReceiveListener dataReceiveListener;
 	
 	private HashMap<String, DataReceiveListener> dataReceiveListnerCollections = new HashMap<>();
+
+	private String privateKey;
 
 	public ClientRunnerThread(Socket client, String userID) throws Exception
 	{
@@ -47,6 +50,16 @@ public class ClientRunnerThread extends Thread
 	public String getUserID()
 	{
 		return this.userID;
+	}
+
+	public void setPrivateKey(String key)
+	{
+		this.privateKey = key;
+	}
+
+	public String getPrivateKey()
+	{
+		return this.privateKey;
 	}
 
 	public void run()
@@ -81,7 +94,8 @@ public class ClientRunnerThread extends Thread
 
 				try
 				{
-					byte[] data = message.getBytes();
+					//byte[] data = message.getBytes();
+					byte[] data = Base64.decode(message, Base64.DEFAULT);
 					output.write(data, 0, data.length);	
 					sendResult = true;
 				}
@@ -124,9 +138,13 @@ public class ClientRunnerThread extends Thread
 			{
 				byte[] data = new byte[BUFFER_SIZE];
 				int length = input.read(data, 0, BUFFER_SIZE);
+				System.out.println("len : " + length);
 				data = trimByte(data, length);
 
-				String message = new String(data);
+				//String message = new String(data);
+				String message = Base64.encodeToString(data, Base64.DEFAULT);
+
+				System.out.println("rec + " + message);
 
 				if(dataReceiveListener != null)
 					dataReceiveListener.receiveData(message);

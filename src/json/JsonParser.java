@@ -19,9 +19,9 @@ public class JsonParser
 	public JsonParser(String json)
 	{
 		gson = new Gson();
-		object = new JsonObject();
 		parser = new com.google.gson.JsonParser();
 		this.jsonElement = parser.parse(json);
+		object = jsonElement.getAsJsonObject();
 	}
 
 	public JsonParser add(String property, String value)
